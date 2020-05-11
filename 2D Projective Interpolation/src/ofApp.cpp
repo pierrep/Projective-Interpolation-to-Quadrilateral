@@ -2,19 +2,19 @@
 
 GLuint VBO, VAO;
 
-void calcQn(float p0x, float p0y, float p1x, float p1y, float p2x, float p2y, float p3x, float p3y,
+void calculateQ(ofVec2f p0, ofVec2f p1, ofVec2f p2, ofVec2f p3,
 	float& q0, float& q1, float &q2, float & q3)
 {
-	float ax = p2x - p0x;
-	float ay = p2y - p0y;
-	float bx = p3x - p1x;
-	float by = p3y - p1y;
+    float ax = p2.x - p0.x;
+    float ay = p2.y - p0.y;
+    float bx = p3.x - p1.x;
+    float by = p3.y - p1.y;
 
 	float cross = ax * by - ay * bx;
 
 	if (cross != 0) {
-		float cy = p0y - p1y;
-		float cx = p0x - p1x;
+        float cy = p0.y - p1.y;
+        float cx = p0.x - p1.x;
 
 		float s = (ax * cy - ay * cx) / cross;
 
@@ -39,42 +39,19 @@ void ofApp::setup(){
 	shader.load("calibrate");
 	shader.printActiveAttributes();
 
-	float w = ofGetWidth();
-	float h = ofGetHeight();
+    w = ofGetWidth();
+    h = ofGetHeight();
+    q0 = q1 = q2 = q3 = 1.0;
+    p0.set(w*0.25f, 0);
+    p1.set(w*0.75f, 0);
+    p2.set(w, h);
+    p3.set(0, h);
 
-	float q0, q1, q2, q3;
-	q0 = q1 = q2 = q3 = 1.0;
-	//calcQn(w*0.25, 0, w*0.75, 0, w, h, 0, h, q0, q1, q2, q3);
+    setupVertexArray();
 
-
-	GLfloat  v[] = { w*0.25, 0, w*0.75, 0, w, h, 0, h, 
-					0*q0, 0*q0, q0, 
-					1*q1, 0*q1, q1, 
-					1*q2, 1*q2, q2,
-					0*q3, 1*q3, q3 };
-	
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	// Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STATIC_DRAW);
-
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*)0);
-
-	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)(8*sizeof(GLfloat)));
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
-
-	glBindVertexArray(0);
-
-
-	ofDisableArbTex();
-	img.load("test.jpeg");
-	grid.load("grid.png");
+    ofDisableArbTex();
+    //grid.load("grid.png");
+    grid.load("test.jpg");
 
 }
 
@@ -86,77 +63,75 @@ void ofApp::update(){
 //--------------------------------------------------------------
 void ofApp::draw(){
 
-	ofBackground(0);
+    ofBackground(0);
 	ofSetColor(255);
 
 	shader.begin();
-	shader.setUniformTexture("tex", img.getTexture(), 0);
-	shader.setUniformTexture("grid", grid.getTexture(), 1);
+    shader.setUniformTexture("grid", grid.getTexture(), 0);
 	
 	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4); // 0 = the starting index in the enabled arrays; 4 = the number of indices to be rendered.
 	glBindVertexArray(0);
 
 	shader.end();
+
+    ofSetWindowTitle(ofToString(ofGetFrameRate()));
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
 	if (key == ' ')
 	{
-		float w = ofGetWidth();
-		float h = ofGetHeight();
-
-		float q0, q1, q2, q3;
-		q0 = q1 = q2 = q3 = 1.0;
-		calcQn(w*0.25, 0, w*0.75, 0, w, h, 0, h, q0, q1, q2, q3);
-
-
-		GLfloat  v[] = { w*0.25, 0, w*0.75, 0, w, h, 0, h,
-			0 * q0, 0 * q0, q0,
-			1 * q1, 0 * q1, q1,
-			1 * q2, 1 * q2, q2,
-			0 * q3, 1 * q3, q3 };
-
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STATIC_DRAW);
-
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*)0);
-
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)(8 * sizeof(GLfloat)));
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
+        calculateQ(p0, p1, p2, p3, q0, q1, q2, q3);
+        updateVertexBuffer();
 	}
 
 	if (key == 'b')
 	{
-		float w = ofGetWidth();
-		float h = ofGetHeight();
-
-		float q0, q1, q2, q3;
 		q0 = q1 = q2 = q3 = 1.0;
-		//calcQn(w*0.25, 0, w*0.75, 0, w, h, 0, h, q0, q1, q2, q3);
-
-
-		GLfloat  v[] = { w*0.25, 0, w*0.75, 0, w, h, 0, h,
-			0 * q0, 0 * q0, q0,
-			1 * q1, 0 * q1, q1,
-			1 * q2, 1 * q2, q2,
-			0 * q3, 1 * q3, q3 };
-
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STATIC_DRAW);
-
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*)0);
-
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)(8 * sizeof(GLfloat)));
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
+        updateVertexBuffer();
 	}
+}
+
+//--------------------------------------------------------------
+void ofApp::setupVertexArray()
+{
+    GLfloat  v[] = { p0.x, p0.y, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y,
+                    0*q0, 0*q0, q0,
+                    1*q1, 0*q1, q1,
+                    1*q2, 1*q2, q2,
+                    0*q3, 1*q3, q3 };
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*)0);
+
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)(8*sizeof(GLfloat)));
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindVertexArray(0);
+}
+
+//--------------------------------------------------------------
+void ofApp::updateVertexBuffer()
+{
+    GLfloat  v[] = { p0.x, p0.y, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y,
+        0 * q0, 0 * q0, q0,
+        1 * q1, 0 * q1, q1,
+        1 * q2, 1 * q2, q2,
+        0 * q3, 1 * q3, q3 };
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 //--------------------------------------------------------------
@@ -166,7 +141,9 @@ void ofApp::keyReleased(int key){
 
 //--------------------------------------------------------------
 void ofApp::mouseMoved(int x, int y ){
-
+ p0 = ofVec2f(x,y);
+ calculateQ(p0, p1, p2, p3, q0, q1, q2, q3);
+ updateVertexBuffer();
 }
 
 //--------------------------------------------------------------

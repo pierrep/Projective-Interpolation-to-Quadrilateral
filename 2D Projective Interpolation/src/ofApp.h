@@ -20,9 +20,14 @@ class ofApp : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
-		
+        void setupVertexArray();
+        void updateVertexBuffer();
+
 		ofShader shader;
 
-		ofImage img;
 		ofImage grid;
+
+        float q0, q1, q2, q3;
+        float w,h;
+        ofVec2f p0,p1,p2,p3;
 };
